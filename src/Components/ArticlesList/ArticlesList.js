@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { useQuery } from '@apollo/client'
+import React, { useState, useEffect } from 'react'
+import { useLazyQuery } from '@apollo/client'
 import { GET_ARTICLES_LIST } from '../../Server'
 import styled from 'styled-components'
 import { Link } from 'react-router-dom'
@@ -11,27 +11,32 @@ const ArticlesList = () => {
   const [articles, setArticles] = useState([])
   const take = 10
 
-  const { loading: queryLoading, error, data, fetchMore } = useQuery(
+  const [loading, setLoading] = useState(true)
+
+  const [getGraphQlData, { loading: queryLoading, error }] = useLazyQuery(
     GET_ARTICLES_LIST,
     {
       variables: { skip, take },
       onCompleted: (newData) => {
         if (newData && newData.contents) {
+          setLoading(false)
           setArticles((prevArticles) => [...prevArticles, ...newData.contents])
         }
       },
     },
   )
 
-  const bottomBoundaryRef = useRef(null)
+  useEffect(() => {
+    getGraphQlData()
+  }, [getGraphQlData])
 
   const handleScroll = () => {
-    const container = bottomBoundaryRef.current
-    if (container) {
-      const { scrollTop, scrollHeight, clientHeight } = container
-      if (scrollTop + clientHeight >= scrollHeight && !queryLoading) {
-        setSkip((prevSkip) => prevSkip + 10)
-      }
+    if (
+      window.innerHeight + (document.documentElement.scrollTop + 1) >=
+      document.documentElement.offsetHeight
+    ) {
+      setLoading(true)
+      setSkip((prevPage) => prevPage + 1)
     }
   }
 
@@ -40,15 +45,16 @@ const ArticlesList = () => {
     return () => {
       window.removeEventListener('scroll', handleScroll)
     }
-  }, [queryLoading])
+  }, [])
 
   useEffect(() => {
-    if (skip > 0) {
-      fetchMore({
-        variables: { skip },
-      })
+    if (loading) {
+      getGraphQlData()
     }
-  }, [skip, fetchMore])
+  }, [loading, getGraphQlData])
+
+  if (queryLoading && skip === 0) return <Loader />
+  if (error) return <Error />
 
   const truncateDescription = (description) => {
     if (description.length > 150) {
@@ -57,6 +63,20 @@ const ArticlesList = () => {
     return description
   }
 
+  const getRussianNoun = (number, cases) => {
+    const rem100 = number % 100
+    const rem10 = number % 10
+    if (rem100 >= 11 && rem100 <= 19) {
+      return cases[2]
+    }
+    if (rem10 === 1) {
+      return cases[0]
+    }
+    if (rem10 >= 2 && rem10 <= 4) {
+      return cases[1]
+    }
+    return cases[2]
+  }
   const calculateTime = (time) => {
     const currentTimestamp = new Date().getTime()
     const timestamp = time * 1000
@@ -80,24 +100,6 @@ const ArticlesList = () => {
       return `${days} ${getRussianNoun(days, ['день', 'дня', 'дней'])} назад`
     }
   }
-  const getRussianNoun = (number, cases) => {
-    const rem100 = number % 100
-    const rem10 = number % 10
-    if (rem100 >= 11 && rem100 <= 19) {
-      return cases[2]
-    }
-    if (rem10 === 1) {
-      return cases[0]
-    }
-    if (rem10 >= 2 && rem10 <= 4) {
-      return cases[1]
-    }
-    return cases[2]
-  }
-
-  if (queryLoading) return <Loader />
-  if (error) return <Error />
-
   return (
     <div>
       <LogoWrapper>
@@ -122,7 +124,7 @@ const ArticlesList = () => {
             parents,
           } = article
           return (
-            <WievItem key={id} id={id}>
+            <WievItem key={index} id={id}>
               <CustomLink to={`/detailsNews/${id}`} state={{ id, url }}>
                 <Image
                   src={`https://i.simpalsmedia.com/point.md/news/370x194/${thumbnail}`}
@@ -146,7 +148,6 @@ const ArticlesList = () => {
                   <TimeOfCreation>{calculateTime(dates.posted)}</TimeOfCreation>
                 </SourceTimeWrapper>
               </div>
-              {index === articles.length - 1 && <div ref={bottomBoundaryRef} />}
             </WievItem>
           )
         })}
@@ -234,37 +235,3 @@ const TimeOfCreation = styled.p`
   line-height: 0;
   width: max-content;
 `
-// function YourComponent() {
-//   // Define any state you might need
-//   const [data, setData] = useState(null);
-
-//   // Define your GraphQL query and variables (if any)
-//   const [getGraphQLData, { loading, data: queryData }] = useLazyQuery(YOUR_GRAPHQL_QUERY);
-
-//   useEffect(() => {
-//     // Execute the GraphQL query when the component mounts
-//     getGraphQLData();
-//   }, []); // The empty dependency array means this effect runs once when the component mounts
-
-//   // Update state when query data is received
-//   useEffect(() => {
-//     if (queryData) {
-//       setData(queryData);
-//     }
-//   }, [queryData]);
-
-//   if (loading) {
-//     return <div>Loading...</div>;
-//   }
-
-//   return (
-//     <div>
-//       {data && (
-//         // Render your data here
-//         <div>{JSON.stringify(data)}</div>
-//       )}
-//     </div>
-//   );
-// }
-
-// export default YourComponent;
