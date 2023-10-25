@@ -1,25 +1,23 @@
-import logo from './logo.svg';
-import './App.css';
+import './App.css'
+import styled from 'styled-components'
+import { Route, Routes } from 'react-router-dom'
+import ArticlesList from './Components/ArticlesList/ArticlesList'
+import FullNews from './Components/FullNews/FullNews'
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    <Wiev>
+      <Routes>
+        <Route path="/" element={<ArticlesList />} />
+        <Route path="/detailsNews/:id" element={<FullNews />} />
+      </Routes>
+    </Wiev>
+  )
 }
 
-export default App;
+export default App
+
+const Wiev = styled.div`
+  max-width: 900px;
+  margin: 0 auto;
+`
