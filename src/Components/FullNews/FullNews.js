@@ -11,7 +11,7 @@ const FullNews = () => {
     variables: { id, url },
   })
 
-  if (!data || !data.content) {
+  if (!data) {
     return null
   }
 
